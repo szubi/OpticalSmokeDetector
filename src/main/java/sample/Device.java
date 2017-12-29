@@ -83,24 +83,49 @@ public class Device {
 
         System.out.println("Doesn't work in jar");
 
-        String portsArray[] = SerialPortList.getPortNames();
+        String portNames[] = SerialPortList.getPortNames();
 
-        for (String port : portsArray) {
+        /*String[] portNames = SerialPortList.getPortNames();
+        for(int i = 0; i < portNames.length; i++){
+            System.out.println(portNames[i]);
+        }*/
+
+        //String [] portNames = {"COM1", "COM2", "/dev/tty.usbmodem1413", "/dev/tty.usbmodem1423"};
+
+        for (int i = 0; i < portNames.length; i++) {
+
+            System.out.println("Twój port: " + portNames[i]);
+
             try {
-                serialPort = new SerialPort(port);
+                serialPort = new SerialPort(portNames[i]);
                 serialPort.openPort();
                 serialPort.setParams(115200, 8, 1, 0);
-                serialPort.readString();
 
                 Thread.sleep(1000);
 
-                if (Pattern.matches(PATTERN, (serialPort.readString()).trim())) {
+                String firstValue = serialPort.readString();
 
-                    System.out.println("nazwa portu: " + port);
+                if (firstValue == null) {
+                    System.out.println("Port pominięty - wartość: " + firstValue);
+                    serialPort.closePort();
+                    continue;
+                }
+
+                System.out.println("Pierwszy odczyt: " + firstValue);
+
+                Thread.sleep(1000);
+
+                String wartosc = (serialPort.readString()).trim();
+
+                System.out.println("wartość: " + wartosc);
+
+                if (Pattern.matches(PATTERN, wartosc)) {
+
+                    System.out.println("nazwa portu: " + portNames[i]);
                     isOpened = true;
                     return true;
                 }
-                serialPort.closePort();
+                //serialPort.closePort();
             } catch (SerialPortException e) {
                 System.out.println(e);
             } catch (InterruptedException e) {

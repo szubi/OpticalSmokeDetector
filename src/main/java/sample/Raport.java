@@ -63,17 +63,30 @@ public class Raport extends Thread {
     private void createRaportsQuantityFile() {
         if (isFileExists(RAPORTS_QUANTITY_FILE + ".txt")) {
 
-            int raports_quantity = Integer.parseInt(readFromFile(RAPORTS_QUANTITY_FILE));
+            String quantity = readFromFile(RAPORTS_QUANTITY_FILE);
+
+            int raports_quantity;
+
+            try {
+                raports_quantity = Integer.parseInt(quantity);
+            } catch (NumberFormatException e) {
+                System.out.println("wyjątek: " + e);
+
+                raports_quantity = 0;
+            }
+
             int i = raports_quantity+1;
 
-            System.out.println("nowy numer: " + i);
-
             createFileAndWrite(RAPORTS_QUANTITY_FILE, String.valueOf(i), false, false);
-
         } else {
-
             createFileAndWrite(RAPORTS_QUANTITY_FILE, "1", false, false);
         }
+    }
+
+    public boolean delete(int number) {
+        File file = new File(DIRECTORY_NAME + "/" + "raport-" + number + ".txt");
+
+        return file.delete();
     }
 
     public boolean isFileExists(String fileName) {
@@ -81,4 +94,6 @@ public class Raport extends Thread {
 
         return file.exists();
     }
+
+
 }

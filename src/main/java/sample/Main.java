@@ -21,4 +21,7 @@ public class Main extends Application {
         launch(args);
     }
 
+
+    // mvn clean compile assembly:single
+
 }

@@ -10,8 +10,10 @@ import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
+import javafx.scene.chart.LineChart;
 import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 
 import static sample.Device.checkPattern;
@@ -24,12 +26,21 @@ public class PartialResultsTask extends Task<ObservableList> {
     private Label label;
     private Label resultLabel;
     private Label is_connected;
+    private Button run;
+
+    private LineChart<Number, Number> lineChart;
+    private XYChart.Series data;
+    private XYChart.Series data2;
+    private XYChart.Series data3;
 
     private XYChart.Data<Integer, Integer> chart;
     private XYChart.Data<Integer, Integer> chart2;
     private XYChart.Data<Integer, Integer> chart3;
 
-    private double result;
+    private double photoresistor_sum;
+    private double phototransistor_sum;
+    private double reflective_sum;
+
     private int nextRaportNumber;
     private int i;
 
@@ -37,11 +48,13 @@ public class PartialResultsTask extends Task<ObservableList> {
     private Runnable task;
 
 
-    public PartialResultsTask(NumberAxis xAxis, Label average, Label result, Label is_connected) {
+    public PartialResultsTask(NumberAxis xAxis, Label average, Label result, Label is_connected, Button run, LineChart<Number, Number> lineChart) {
         this.xAxis = xAxis;
         this.label = average;
         this.resultLabel = result;
         this.is_connected = is_connected;
+        this.run = run;
+        this.lineChart = lineChart;
     }
 
     // Uses Java 7 diamond operator
@@ -75,9 +88,9 @@ public class PartialResultsTask extends Task<ObservableList> {
         return partialResults3.get();
     }
 
-    public final ReadOnlyObjectProperty partialResultsProperty() {
+    /*public final ReadOnlyObjectProperty partialResultsProperty() {
         return partialResults.getReadOnlyProperty();
-    }
+    }*/
 
     @Override
     @SuppressWarnings("unchecked")
@@ -85,41 +98,46 @@ public class PartialResultsTask extends Task<ObservableList> {
 
         System.out.println("Is it working?");
 
-        System.out.flush();
-
-        /*try {
-            SerialPort serialPort = new SerialPort("/dev/tty.usbmodem1413");
-            System.out.println("cos");
-            serialPort.openPort();
-        } catch (SerialPortException e) {
-            System.out.println("błąd: " + e);
-        }*/
-
         if (checkPattern()) {
 
+            task = () -> {
+                data = new XYChart.Series(getPartialResults());
+                data.setName("Fotorezystor");
+
+                data2 = new XYChart.Series(getPartialResults2());
+                data2.setName("Fototranzystor");
+
+                data3 = new XYChart.Series(getPartialResults3());
+                data3.setName("Odbiciowy");
+
+                lineChart.getData().addAll(data, data2, data3);
+                lineChart.setLegendVisible(true);
+
+                run.setDisable(true);
+            };
+
+            Platform.runLater(task);
+
             System.out.println("Doesn't work here after checkPattern method");
-            //Device device = new Device();
 
             raport = new Raport("raports", "raports_quantity");
             nextRaportNumber = Integer.parseInt(raport.readFromFile("raports_quantity"));
-            raport.createFileAndWrite("raport-" + nextRaportNumber, "Natężenie dymu Fotorezystor;\t\tWartość średnia;\t\tNatężenie dymu Demo-1;\t\tWartość średnia;", true, true);
+            raport.delete(nextRaportNumber);
+            String data = "Natężenie dymu Fotorezystor;\tWartość średnia;\tNatężenie dymu Fototranzystor;\tWartość średnia;\tNatężenie dymu Odbiciowy;\tWartość średnia;";
+            raport.createFileAndWrite("raport-" + nextRaportNumber, data, true, true);
 
-            //System.out.println("Urworzone pliki");
 
             while (true) {
-
                 if (isCancelled()) {
                     break;
                 }
 
                 if (!Device.isOpened) {
-                    //System.out.println("Uruchamiam port???????????????\n\n");
                     checkPattern();
                 }
 
                 try {
                     Thread.sleep(1000);
-                    //System.out.println("WYKONUJE SIĘ");
                 } catch (InterruptedException ex) {
                     Logger.getLogger(PartialResultsTask.class.getName()).log(Level.SEVERE, null, ex);
                 }
@@ -134,11 +152,7 @@ public class PartialResultsTask extends Task<ObservableList> {
                         is_connected.setText("Urządzenie podłączone");
                     }
 
-                    //int latency = device.get();
-
                     List<Integer> latency = Device.get();
-
-                    //System.out.println("wartosc latency: " + latency);
 
                     chart = new XYChart.Data<>(count, latency.get(1));
                     chart2 = new XYChart.Data<>(count, latency.get(2));
@@ -159,18 +173,31 @@ public class PartialResultsTask extends Task<ObservableList> {
                         xAxis.setUpperBound(xAxis.getUpperBound() + 1);
                     }
 
-                    result += latency.get(1);
-                    double average = result / i;
-                    average *= 10000;
-                    average = Math.round(average);
-                    average /= 10000;
+                    photoresistor_sum += latency.get(1);
+                    double average_1 = photoresistor_sum / i;
+                    average_1 *= 10000;
+                    average_1 = Math.round(average_1);
+                    average_1 /= 10000;
 
-                    //System.out.println("srednia: " + srednia);
+                    phototransistor_sum += latency.get(2);
+                    double average_2 = phototransistor_sum / i;
+                    average_2 *= 10000;
+                    average_2 = Math.round(average_2);
+                    average_2 /= 10000;
+
+                    phototransistor_sum += latency.get(3);
+                    double average_3 = phototransistor_sum / i;
+                    average_3 *= 10000;
+                    average_3 = Math.round(average_3);
+                    average_3 /= 10000;
 
                     resultLabel.setText(""+latency.get(1));
-                    label.setText(""+average);
+                    label.setText(""+average_1);
 
-                    String rap = String.valueOf(latency.get(1)) + ";\t\t\t\t\t\t\t\t\t" + String.valueOf(average) + ";\t\t\t\t\t" + latency.get(2) + ";\t\t\t\t\t\t\t" + 1 + ";";
+                    String rap = String.valueOf(
+                            latency.get(1)) + ";\t\t\t\t" + String.valueOf(average_1) +
+                            ";\t\t\t" + latency.get(2) + ";\t\t\t\t" + String.valueOf(average_2)  +
+                            ";\t\t\t" + latency.get(3) + ";\t\t\t\t" + String.valueOf(average_3) + ";";
 
                     raport.createFileAndWrite("raport-" + nextRaportNumber, rap, true, true);
                 };
@@ -180,12 +207,14 @@ public class PartialResultsTask extends Task<ObservableList> {
                 i++;
             }
         } else {
-            System.out.println("Something 2");
-            //czy_podlaczone.setText("Urządzenie odłączone");
-            //AlertBox.display("", "Brak połączenia z czujnikiem");
+            task = () -> {
+                is_connected.setText("Urządzenie odłączone");
+                AlertBox.display("", "Brak połączenia z czujnikiem");
+            };
+
+            Platform.runLater(task);
         }
 
         return partialResults.get();
     }
-
 }
