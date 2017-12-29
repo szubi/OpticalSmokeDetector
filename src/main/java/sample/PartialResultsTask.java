@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.application.Platform;
-import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -15,7 +14,6 @@ import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-
 import static sample.Device.checkPattern;
 
 public class PartialResultsTask extends Task<ObservableList> {
@@ -75,7 +73,6 @@ public class PartialResultsTask extends Task<ObservableList> {
             = new ReadOnlyObjectWrapper<>(this, "partialResults",
             FXCollections.observableArrayList(new ArrayList()));
 
-
     public final ObservableList getPartialResults() {
         return partialResults.get();
     }
@@ -88,15 +85,9 @@ public class PartialResultsTask extends Task<ObservableList> {
         return partialResults3.get();
     }
 
-    /*public final ReadOnlyObjectProperty partialResultsProperty() {
-        return partialResults.getReadOnlyProperty();
-    }*/
-
     @Override
     @SuppressWarnings("unchecked")
     protected ObservableList call() throws Exception {
-
-        System.out.println("Is it working?");
 
         if (checkPattern()) {
 
@@ -115,17 +106,13 @@ public class PartialResultsTask extends Task<ObservableList> {
 
                 run.setDisable(true);
             };
-
             Platform.runLater(task);
-
-            System.out.println("Doesn't work here after checkPattern method");
 
             raport = new Raport("raports", "raports_quantity");
             nextRaportNumber = Integer.parseInt(raport.readFromFile("raports_quantity"));
             raport.delete(nextRaportNumber);
             String data = "Natężenie dymu Fotorezystor;\tWartość średnia;\tNatężenie dymu Fototranzystor;\tWartość średnia;\tNatężenie dymu Odbiciowy;\tWartość średnia;";
             raport.createFileAndWrite("raport-" + nextRaportNumber, data, true, true);
-
 
             while (true) {
                 if (isCancelled()) {
@@ -143,7 +130,6 @@ public class PartialResultsTask extends Task<ObservableList> {
                 }
 
                 int count = i;
-
                 task = () -> {
 
                     if (!Device.isOpened) {
@@ -185,8 +171,8 @@ public class PartialResultsTask extends Task<ObservableList> {
                     average_2 = Math.round(average_2);
                     average_2 /= 10000;
 
-                    phototransistor_sum += latency.get(3);
-                    double average_3 = phototransistor_sum / i;
+                    reflective_sum += latency.get(3);
+                    double average_3 = reflective_sum / i;
                     average_3 *= 10000;
                     average_3 = Math.round(average_3);
                     average_3 /= 10000;
@@ -201,8 +187,8 @@ public class PartialResultsTask extends Task<ObservableList> {
 
                     raport.createFileAndWrite("raport-" + nextRaportNumber, rap, true, true);
                 };
-
                 Platform.runLater(task);
+
                 updateProgress(i, 1000);
                 i++;
             }
@@ -211,7 +197,6 @@ public class PartialResultsTask extends Task<ObservableList> {
                 is_connected.setText("Urządzenie odłączone");
                 AlertBox.display("", "Brak połączenia z czujnikiem");
             };
-
             Platform.runLater(task);
         }
 
