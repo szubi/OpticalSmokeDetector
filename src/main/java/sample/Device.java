@@ -10,12 +10,30 @@ import jssc.SerialPortList;
 
 public class Device {
 
+    /**
+     * Pole przechowujące instancję/uchwyt do portu
+     */
     private static SerialPort serialPort;
+
+    /**
+     * Wzorzec, na podstawie którego wyszukiwany jest port urządzenia
+     */
     private final static String PATTERN = "([0-9]{1,3};){5}";
 
+    /**
+     * Flaga mówiąca o tym, czy port jest otwarty
+     */
     public static boolean isOpened;
 
 
+    /**
+     * Metoda odpowiedzialna za odczyt danych z urządzenia
+     * Jeżeli port jest zamknięty zwraca listę o wartościach 0
+     * Jeżeli port jest otwarty odczytuje dane z urządzenia w postaci String'u,
+     * parsuje je i rzutuje na Integer dodając do listy, którą ma za zadanie zwrócić
+     *
+     * @return List<Integer>
+     */
     public static List<Integer> get() {
 
         if (serialPort.isOpened()) {
@@ -60,7 +78,6 @@ public class Device {
                     AlertBox.display("", "Brak połączenia z czujnikiem");
                 }
 
-
             } catch (SerialPortException e) {
                 e.printStackTrace();
             }
@@ -79,22 +96,21 @@ public class Device {
     }
 
 
+    /**
+     * Metoda sprawdzająca na podstawie wzorca,
+     * czy na danym porcie komputera jest podłączone urządzenie
+     * Jeżeli tak, zwraca wartość true
+     * W przeciwnym wypadku sprawdza inny port.
+     * Jeżeli sprawdzi każdy port i nie znajdzie urządzenia,
+     * zwróci wartość false
+     *
+     * @return Boolean
+     */
     public static boolean checkPattern()  {
-
-        System.out.println("Doesn't work in jar");
 
         String portNames[] = SerialPortList.getPortNames();
 
-        /*String[] portNames = SerialPortList.getPortNames();
-        for(int i = 0; i < portNames.length; i++){
-            System.out.println(portNames[i]);
-        }*/
-
-        //String [] portNames = {"COM1", "COM2", "/dev/tty.usbmodem1413", "/dev/tty.usbmodem1423"};
-
         for (int i = 0; i < portNames.length; i++) {
-
-            System.out.println("Twój port: " + portNames[i]);
 
             try {
                 serialPort = new SerialPort(portNames[i]);
@@ -106,22 +122,15 @@ public class Device {
                 String firstValue = serialPort.readString();
 
                 if (firstValue == null) {
-                    System.out.println("Port pominięty - wartość: " + firstValue);
                     serialPort.closePort();
                     continue;
                 }
-
-                System.out.println("Pierwszy odczyt: " + firstValue);
 
                 Thread.sleep(1000);
 
                 String wartosc = (serialPort.readString()).trim();
 
-                System.out.println("wartość: " + wartosc);
-
                 if (Pattern.matches(PATTERN, wartosc)) {
-
-                    System.out.println("nazwa portu: " + portNames[i]);
                     isOpened = true;
                     return true;
                 }

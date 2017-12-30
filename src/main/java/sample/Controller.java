@@ -8,24 +8,45 @@ import javafx.scene.control.Label;
 
 public class Controller {
 
+    /**
+     * Składowa osi X wykresu
+     */
     @FXML
     private NumberAxis xAxis;
 
+    /**
+     * Przycisk uruchamiający cały program
+     */
     @FXML
     private Button run;
 
+    /**
+     * Wykres liniowy, na który nanoszone są wartości
+     */
     @FXML
     private LineChart<Number, Number> lineChart;
 
+    /**
+     * Wartości średniej z fotorezystora
+     */
     @FXML
     private Label average;
 
+    /**
+     * Obecna wartość na podstawie odczytu z fotorezystora
+     */
     @FXML
     private Label result;
 
+    /**
+     * Etykieta informująca, czy urządzenie jest podłączone
+     */
     @FXML
     private Label is_connected;
 
+    /**
+     * Metoda inicjalizująca i uruchamiająca cały program/tworząca wątek główny
+     */
     @FXML
     @SuppressWarnings("unchecked")
     public void handleButtonAction() {

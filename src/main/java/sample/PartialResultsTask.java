@@ -1,11 +1,7 @@
 package sample;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javafx.application.Platform;
-import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
@@ -18,73 +14,125 @@ import static sample.Device.checkPattern;
 
 public class PartialResultsTask extends Task<ObservableList> {
 
+    /**
+     * Długość osi X
+     */
     private static int MAX_DATA_POINTS = 25;
 
+    /**
+     * Składowa osi X wykresu
+     */
     private NumberAxis xAxis;
-    private Label label;
+
+    /**
+     * Wartości średniej z fotorezystora
+     */
+    private Label average;
+
+    /**
+     * Obecna wartość na podstawie odczytu z fotorezystora
+     */
     private Label resultLabel;
+
+    /**
+     * Etykieta informująca, czy urządzenie jest podłączone
+     */
     private Label is_connected;
+
+    /**
+     * Przycisk uruchamiający cały program
+     */
     private Button run;
 
+    /**
+     * Wykres liniowy, na który nanoszone są wartości
+     */
     private LineChart<Number, Number> lineChart;
-    private XYChart.Series data;
-    private XYChart.Series data2;
-    private XYChart.Series data3;
 
-    private XYChart.Data<Integer, Integer> chart;
-    private XYChart.Data<Integer, Integer> chart2;
-    private XYChart.Data<Integer, Integer> chart3;
-
+    /**
+     * Suma kolejnych wartości odczytywanych z urządzenia - fotorezystor
+     */
     private double photoresistor_sum;
+
+    /**
+     * Suma kolejnych wartości odczytywanych z urządzenia - fototranzystor
+     */
     private double phototransistor_sum;
+
+    /**
+     * Suma kolejnych wartości odczytywanych z urządzenia - czujnik odbiciowy
+     */
     private double reflective_sum;
 
+    /**
+     * Numer kolejnego raportu - zapisywany do pliku
+     */
     private int nextRaportNumber;
+
+    /**
+     * Pole przechowujące ilość inkrementacji głównej pętli programu oraz dzielnik dla średniej
+     */
     private int i;
 
+    /**
+     * Pole przechowujące instancję klasy Raport odpowiedzialną za utworzenie
+     * pliku raports_quantity, katalogu dla raportów oraz raportów
+     */
     private Raport raport;
+
+    /**
+     * Pole przechowujące instancję wątku wykonującego się w tle
+     */
     private Runnable task;
 
+    /**
+     * Lista obiektów pozwalająca na śledzenie/monitorowanie zmian w momencie ich wystąpienia
+     * Inicjalizacja poprzez pustą listę tablic.
+     *
+     * Odpowiednio dla Fotorezystora, Fototranzystora, Czujnika Odbiciowego
+     */
+    private ObservableList partialResults_photoresistor = FXCollections.observableArrayList();
+    private ObservableList partialResults_phototransistor = FXCollections.observableArrayList();
+    private ObservableList partialResults_reflective = FXCollections.observableArrayList();
 
+    /**
+     *
+     * @param xAxis NumberAxis
+     * @param average Label
+     * @param result Label
+     * @param is_connected Label
+     * @param run Button
+     * @param lineChart LineChart<Number, Number>
+     *
+     * Konstruktor przyjmujący Obiekty sceny JavaFX odpowiedzialny za inicjalizację pól
+     */
     public PartialResultsTask(NumberAxis xAxis, Label average, Label result, Label is_connected, Button run, LineChart<Number, Number> lineChart) {
         this.xAxis = xAxis;
-        this.label = average;
+        this.average = average;
         this.resultLabel = result;
         this.is_connected = is_connected;
         this.run = run;
         this.lineChart = lineChart;
     }
 
-    // Uses Java 7 diamond operator
-    @SuppressWarnings("unchecked")
-    public ReadOnlyObjectWrapper<ObservableList> partialResults
-            = new ReadOnlyObjectWrapper<>(this, "partialResults",
-            FXCollections.observableArrayList(new ArrayList()));
-
-    // Uses Java 7 diamond operator
-    @SuppressWarnings("unchecked")
-    public ReadOnlyObjectWrapper<ObservableList> partialResults2
-            = new ReadOnlyObjectWrapper<>(this, "partialResults",
-            FXCollections.observableArrayList(new ArrayList()));
-
-    // Uses Java 7 diamond operator
-    @SuppressWarnings("unchecked")
-    public ReadOnlyObjectWrapper<ObservableList> partialResults3
-            = new ReadOnlyObjectWrapper<>(this, "partialResults",
-            FXCollections.observableArrayList(new ArrayList()));
-
-    public final ObservableList getPartialResults() {
-        return partialResults.get();
-    }
-
-    public final ObservableList getPartialResults2() {
-        return partialResults2.get();
-    }
-
-    public final ObservableList getPartialResults3() {
-        return partialResults3.get();
-    }
-
+    /**
+     *
+     * @return ObservableList
+     * @throws Exception
+     *
+     * Główny algorytm programu
+     * Metoda sprawdza, czy urzdzenie jest podłączone,
+     * Jeżeli tak, inicjalizuje graficzną scenę, tworzy katalog raportów, plik zliczający raporty
+     * oraz plik raportu(z nagłówkiem),
+     *
+     * Program przechodzi do głównej pętli programu, gdzie wykonywany jest wątek działający w tle @task
+     * Ma on za zadanie utworzyć serię wartości(punktów), które zostaną naniesione na wykres
+     * oraz obliczyć średnią z każdego pomiaru natężenia
+     * Kolejne wartości natężenia oraz jej średnie wartości zostają zapisane do pliku jako raport
+     *
+     * Jeżeli urządzenie jest odłączone lub zostanie odłączone w trakcie pracy, program poinformuje o tym wyświetlając
+     * odpowiedni komunikat
+     */
     @Override
     @SuppressWarnings("unchecked")
     protected ObservableList call() throws Exception {
@@ -92,16 +140,16 @@ public class PartialResultsTask extends Task<ObservableList> {
         if (checkPattern()) {
 
             task = () -> {
-                data = new XYChart.Series(getPartialResults());
-                data.setName("Fotorezystor");
+                XYChart.Series data_photoresistor = new XYChart.Series(partialResults_photoresistor);
+                data_photoresistor.setName("Fotorezystor");
 
-                data2 = new XYChart.Series(getPartialResults2());
-                data2.setName("Fototranzystor");
+                XYChart.Series data_phototransistor = new XYChart.Series(partialResults_phototransistor);
+                data_phototransistor.setName("Fototranzystor");
 
-                data3 = new XYChart.Series(getPartialResults3());
-                data3.setName("Odbiciowy");
+                XYChart.Series data_reflective = new XYChart.Series(partialResults_reflective);
+                data_reflective.setName("Odbiciowy");
 
-                lineChart.getData().addAll(data, data2, data3);
+                lineChart.getData().addAll(data_photoresistor, data_phototransistor, data_reflective);
                 lineChart.setLegendVisible(true);
 
                 run.setDisable(true);
@@ -126,7 +174,7 @@ public class PartialResultsTask extends Task<ObservableList> {
                 try {
                     Thread.sleep(1000);
                 } catch (InterruptedException ex) {
-                    Logger.getLogger(PartialResultsTask.class.getName()).log(Level.SEVERE, null, ex);
+                    System.out.println("Wyjątek: " + ex);
                 }
 
                 int count = i;
@@ -139,19 +187,18 @@ public class PartialResultsTask extends Task<ObservableList> {
                     }
 
                     List<Integer> latency = Device.get();
+                    XYChart.Data<Integer, Integer> point_photoresistor = new XYChart.Data<>(count, latency.get(1));
+                    XYChart.Data<Integer, Integer> point_phototransistor = new XYChart.Data<>(count, latency.get(2));
+                    XYChart.Data<Integer, Integer> point_reflective = new XYChart.Data<>(count, latency.get(3));
 
-                    chart = new XYChart.Data<>(count, latency.get(1));
-                    chart2 = new XYChart.Data<>(count, latency.get(2));
-                    chart3 = new XYChart.Data<>(count, latency.get(3));
-
-                    partialResults.get().add(chart);
-                    partialResults2.get().add(chart2);
-                    partialResults3.get().add(chart3);
+                    partialResults_photoresistor.add(point_photoresistor);
+                    partialResults_phototransistor.add(point_phototransistor);
+                    partialResults_reflective.add(point_reflective);
 
                     if (count > MAX_DATA_POINTS) {
-                        partialResults.get().remove(0);
-                        partialResults2.get().remove(0);
-                        partialResults3.get().remove(0);
+                        partialResults_photoresistor.remove(0);
+                        partialResults_phototransistor.remove(0);
+                        partialResults_reflective.remove(0);
                     }
 
                     if (count > MAX_DATA_POINTS - 1) {
@@ -178,7 +225,7 @@ public class PartialResultsTask extends Task<ObservableList> {
                     average_3 /= 10000;
 
                     resultLabel.setText(""+latency.get(1));
-                    label.setText(""+average_1);
+                    average.setText(""+average_1);
 
                     String rap = String.valueOf(
                             latency.get(1)) + ";\t\t\t\t" + String.valueOf(average_1) +
@@ -200,6 +247,6 @@ public class PartialResultsTask extends Task<ObservableList> {
             Platform.runLater(task);
         }
 
-        return partialResults.get();
+        return partialResults_photoresistor;
     }
 }

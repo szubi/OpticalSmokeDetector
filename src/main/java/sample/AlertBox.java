@@ -10,6 +10,15 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 public class AlertBox {
+
+    /**
+     *
+     * @param title String
+     * @param message String
+     *
+     * Metoda wyświetlająca powiadomienie w zależności od otrzymanego tytułu i wiadomośći
+     * Odpowiedzialna za informowanie urzytkownika o braku podłączonego urządzenia
+     */
     public static void display(String title, String message) {
         Stage window = new Stage();
 
